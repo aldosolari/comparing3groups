@@ -40,9 +40,10 @@ rm(list=ls())
 
 
 We assume the linear model
-$$y_{u,i} = \mu_i + \varepsilon_{u,i}, \qquad i=1,2,3, \quad u=1,\ldots,10,$$
-where $y_{u,i}$ is the response (dried weight) for unit $u$ in group $i$ ($i=1$ for control, $i=2$ for treatment A and $i=3$ for treatment B), and $\varepsilon_{u,i} \stackrel{\mathrm{iid}}{\sim} N(0,\sigma^2)$. 
-We are interested in testing the global null hypothesis that all three group means are equal, i.e. $H_{123}: \mu_1 = \mu_2=\mu_3$, and the three pairwise comparisons between groups, i.e. $H_{12}: \mu_1=\mu_2$, $H_{13}: \mu_1=\mu_3$ and $H_{23}: \mu_2=\mu_3$.  
+$$Y_{u,i} = \mu_i + \varepsilon_{u,i}, \qquad i=1,2,3, \quad u=1,\ldots,10,$$
+where $Y_{u,i}$ is the response (dried weight) for unit $u$ in group $i$ ($i=1$ for control, $i=2$ for treatment A and $i=3$ for treatment B), and $\varepsilon_{u,i} \stackrel{\mathrm{iid}}{\sim} N(0,\sigma^2)$. 
+We are interested in testing the global null hypothesis that all three group means are equal, i.e. $H_{123}: \mu_1 = \mu_2=\mu_3$, and the three null hypotheses about pairwise comparisons between groups, i.e. $H_{12}: \mu_1=\mu_2$, $H_{13}: \mu_1=\mu_3$ and $H_{23}: \mu_2=\mu_3$.  
+
 
 To get estimates $\hat{\mu}_1$, $\hat{\mu}_2$, $\hat{\mu}_3$ and $\hat{\sigma}^2$:
 
@@ -143,7 +144,9 @@ resulting in the rejection of $H_{123}$, $H_{13}$ and $H_{23}$ at $\alpha=5\%$ f
 
 #### Non-parametric analysis
 
-A non-parametric analysis can be performed by using permutation tests. A common choice is to consider non-standardized test statistics $T_{ij} = (\hat{\mu}_i - \hat{\mu}_j)^2$ for testing $H_{ij}$, and $T_{123} = T_{12}+T_{23}+ T_{13}$,  $\tilde{T} = \max(T_{12}, T_{13},T_{23})$ and $\tilde{T}_{1}=\max(T_{12}, T_{13})$ for testing $H_{123}$. The construction of the permutation null distribution for each test statistic proceeds as follows. The observations of the groups are pooled, and the test statistic is recalculated for every permutation of the group labels. 
+In the non-parametric setting, we are interested in testing the global null hypothesis that the distributions of the three groups are equal, i.e. $H_{123}: F_1=F_2=F_3$, and the three null hypotheses about pairwise comparisons of distributions, i.e. $H_{12}: F_1=F_2$, $H_{13}: F_1=F_3$ and $H_{23}: F_2=F_3$, where $F_{i}(y) = \mathrm{pr}(Y_i \leq y)$ is the cumulative distribution function for group $i$. We will restrict attention to the shift model $F_i(y) = F(y - \mu_i)$ for an arbitrary cumulative distribution function $F$, so we go back to the original formulation $H_{123}: \mu_1 = \mu_2=\mu_3$, $H_{12}: \mu_1=\mu_2$, $H_{13}: \mu_1=\mu_3$ and $H_{23}: \mu_2=\mu_3$.
+
+Classic distribution-free permutation tests use non-standardized test statistics $T_{ij} = (\hat{\mu}_i - \hat{\mu}_j)^2$ for testing $H_{ij}$, and $T_{123} = T_{12}+T_{23}+ T_{13}$,  $\tilde{T} = \max(T_{12}, T_{13},T_{23})$ and $\tilde{T}_{1}=\max(T_{12}, T_{13})$ for testing $H_{123}$. The construction of the permutation null distribution for each test statistic proceeds as follows. The observations of the groups are pooled, and the test statistic is recalculated for every permutation of the group labels. 
 
 Permutation tests of $H_{123}$ uses a global permutation distribution, constructed by permuting the observations of all three groups. 
 
