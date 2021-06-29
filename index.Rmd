@@ -1,6 +1,5 @@
 ---
 title: "Comparing three groups"
-author: "Jelle J. Goeman and Aldo Solari"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -25,7 +24,6 @@ This example is taken from Dobson's (1983) book, Section 7.
 
 Genetically similar seeds are randomly assigned to be raised
 either under standard conditions (**control**) or in two different nutritionally enriched environments (**treatment A** and **treatment B**). After a predetermined period all plants are harvested, dried and weighed. The results, expressed as dried weight in grams, for samples of $10$ plants from each group are given in following Table. 
-
 
 ```{r, echo=FALSE, results='asis'}
 library(dobson)
@@ -83,31 +81,30 @@ p_dun <- DunnettTest(weight ~ factor(group), plant.dried, control="Control")$Con
 p_dun
 ```
 
-
 ANOVA F-test (method A), closed Tukey (method B), closed Dunnett (method C) and Gatekeeping (method D) $p$-values for $H_{123}$:
 
 ```{r}
 fit_123 <- lm(weight ~ 1, plant.dried)
-p_A = anova(fit_123,fit)[2,"Pr(>F)"]
+p_A <- anova(fit_123,fit)[2,"Pr(>F)"]
 p_A
-p_B = min(p_tuk)
+p_B <- min(p_tuk)
 p_B
-p_C = min(p_dun)
+p_C <- min(p_dun)
 p_C
-p_D = p_12
+p_D <- p_12
 p_D
 ```
 
 Adjusted $p$-values for the four hypotheses and the four methods:
 
 ```{r}
-adjp = matrix(NA,nrow=4,ncol=4,
+adjp <- matrix(NA,nrow=4,ncol=4,
               dimnames = list(c("A", "B", "C", "D"),
-                               c("H12", "H13", "H23", "H123")))
-adjp["A",] = pmax(c(p_12,p_13,p_23,p_A),p_A)
-adjp["B",] = pmax(c(p_12,p_13,p_23,p_B),p_B)
-adjp["C",] = pmax(c(p_12,p_13,p_23,p_C),p_C)
-adjp["D",] = pmax(c(p_12,p_13,p_23,p_D),p_D)
+                              c("H12", "H13", "H23", "H123")))
+adjp["A",] <- pmax(c(p_12,p_13,p_23,p_A),p_A)
+adjp["B",] <- pmax(c(p_12,p_13,p_23,p_B),p_B)
+adjp["C",] <- pmax(c(p_12,p_13,p_23,p_C),p_C)
+adjp["D",] <- pmax(c(p_12,p_13,p_23,p_D),p_D)
 adjp
 ```
 
@@ -127,26 +124,27 @@ bp + stat_compare_means(method = "anova", label.y = 10) +
   stat_pvalue_manual(stats, label = "p = {p.adj}", y.position =   c(9, 8, 7))
 ```
 
-If we replace partial F-tests by two-samples $t$ tests, we obtain
+#### Alternative analyses
+
+The methods A, B, C and D are not tied to $F$-tests, and naturally generalize to other tests. For example, if we believe that variances may differ between groups when the means do, we would prefer a two-sample $t$-test over the $F$-test for the pairwise hypotheses. By replacing partial F-tests by two-samples $t$ tests, we obtain
 
 ```{r}
-p_12 = stats$p[1]
-p_13 = stats$p[2]
-p_23 = stats$p[3]
-adjp["A",] = pmax(c(p_12,p_13,p_23,p_A),p_A)
-adjp["B",] = pmax(c(p_12,p_13,p_23,p_B),p_B)
-adjp["C",] = pmax(c(p_12,p_13,p_23,p_C),p_C)
-adjp["D",] = pmax(c(p_12,p_13,p_23,p_D),p_D)
+p_12 <- stats$p[1]
+p_13 <- stats$p[2]
+p_23 <- stats$p[3]
+adjp["A",] <- pmax(c(p_12,p_13,p_23,p_A),p_A)
+adjp["B",] <- pmax(c(p_12,p_13,p_23,p_B),p_B)
+adjp["C",] <- pmax(c(p_12,p_13,p_23,p_C),p_C)
+adjp["D",] <- pmax(c(p_12,p_13,p_23,p_D),p_D)
 adjp
 ```
 
-resulting in the rejection of $H_{123}$, $H_{13}$ and $H_{23}$ at $\alpha=5\%$ for methods A and B.
+resulting in the rejection of $H_{123}$, $H_{13}$ and $H_{23}$ at $\alpha=5\%$ for methods A and B.Here method A is Fisher's LSD.
 
-#### Non-parametric analysis
+We could also use methods A, B, C and D in a permutation framework.
+A standard choice is to consider non-standardized test statistics $T_{ij} = (\hat{\mu}_i - \hat{\mu}_j)^2$ for testing $H_{ij}$, and $T_{123} = T_{12}+T_{23}+ T_{13}$,  $\tilde{T} = \max(T_{12}, T_{13},T_{23})$ and $\tilde{T}_{1}=\max(T_{12}, T_{13})$ for testing $H_{123}$ in methods A, B, C and D, respectively. 
 
-In the non-parametric setting, we are interested in testing the global null hypothesis that the distributions of the three groups are equal, i.e. $H_{123}: F_1=F_2=F_3$, and the three null hypotheses about pairwise comparisons of distributions, i.e. $H_{12}: F_1=F_2$, $H_{13}: F_1=F_3$ and $H_{23}: F_2=F_3$, where $F_{i}(y) = \mathrm{pr}(Y_i \leq y)$ is the cumulative distribution function for group $i$. We will restrict attention to the shift model $F_i(y) = F(y - \mu_i)$ for an arbitrary cumulative distribution function $F$, so we go back to the original formulation $H_{123}: \mu_1 = \mu_2=\mu_3$, $H_{12}: \mu_1=\mu_2$, $H_{13}: \mu_1=\mu_3$ and $H_{23}: \mu_2=\mu_3$.
-
-Classic distribution-free permutation tests use non-standardized test statistics $T_{ij} = (\hat{\mu}_i - \hat{\mu}_j)^2$ for testing $H_{ij}$, and $T_{123} = T_{12}+T_{23}+ T_{13}$,  $\tilde{T} = \max(T_{12}, T_{13},T_{23})$ and $\tilde{T}_{1}=\max(T_{12}, T_{13})$ for testing $H_{123}$. The construction of the permutation null distribution for each test statistic proceeds as follows. The observations of the groups are pooled, and the test statistic is recalculated for every permutation of the group labels. 
+The construction of the permutation null distribution for each test statistic proceeds as follows. The observations of the groups are pooled, and the test statistic is recalculated for every permutation of the group labels. 
 
 Permutation tests of $H_{123}$ uses a global permutation distribution, constructed by permuting the observations of all three groups. 
 
@@ -156,18 +154,20 @@ labels <- factor(plant.dried$group, labels=0:2)
 labels <- as.numeric(levels(labels))[labels]
 B = 10^5
 labels.perm <- mt.sample.label(labels, test="f", B=B)
-c12 = ( (labels.perm + 2) %% 3 ) -1
-c13 = labels.perm - 1
-c23 = ( (labels.perm + 1) %% 3 ) -1
-y = plant.dried$weight
-n = 10
+c12 <- ( (labels.perm + 2) %% 3 ) -1
+c13 <- labels.perm - 1
+c23 <- ( (labels.perm + 1) %% 3 ) -1
+y <- plant.dried$weight
+n <- 10
 stats.perm <- rbind(
 ( y %*% t(c12) / n )^2,
 ( y %*% t(c13) / n )^2,
 ( y %*% t(c23) / n )^2
 )
-hist(colSums(stats.perm), main="", xlab=expression(T[123]))
+hist(colSums(stats.perm), main="", xlab=expression(T[123]), xatx="n")
+points(sum(stats.perm[,1]),0, pch=19)
 hist(apply(stats.perm,2,max), main="", xlab=expression( tilde(T) ) )
+points(max(stats.perm[,1]),0, pch=19)
 ```
 
 The permutation $p$-value is calculated
@@ -196,10 +196,10 @@ Permutation tests of $H_{ij}$ use a local permutation distribution, constructed 
 t_12 <- (mt.sample.teststat(y[labels!=2],labels[labels!=2], B=0, test="t.equalvar") ) ^2
 p_12 <- mean(t_12 >= t_12[1])
 p_12
-t_13 = (mt.sample.teststat(y[labels!=1],labels[labels!=1]=="2", B=0, test="t.equalvar") ) ^2
+t_13 <- (mt.sample.teststat(y[labels!=1],labels[labels!=1]=="2", B=0, test="t.equalvar") ) ^2
 p_13 <- mean(t_13 >= t_13[1])
 p_13
-t_23 = (mt.sample.teststat(y[labels!=0],labels[labels!=0]=="2", B=0, test="t.equalvar") ) ^2
+t_23 <- (mt.sample.teststat(y[labels!=0],labels[labels!=0]=="2", B=0, test="t.equalvar") ) ^2
 p_23 <- mean(t_23 >= t_23[1])
 p_23
 ```
@@ -207,17 +207,17 @@ Adjusted $p$-values with permutation tests for the four hypotheses and the four 
 
 ```{r}
 p_D <- p_12
-adjp["A",] = pmax(c(p_12,p_13,p_23,p_A),p_A)
-adjp["B",] = pmax(c(p_12,p_13,p_23,p_B),p_B)
-adjp["C",] = pmax(c(p_12,p_13,p_23,p_C),p_C)
-adjp["D",] = pmax(c(p_12,p_13,p_23,p_D),p_D)
+adjp["A",] <- pmax(c(p_12,p_13,p_23,p_A),p_A)
+adjp["B",] <- pmax(c(p_12,p_13,p_23,p_B),p_B)
+adjp["C",] <- pmax(c(p_12,p_13,p_23,p_C),p_C)
+adjp["D",] <- pmax(c(p_12,p_13,p_23,p_D),p_D)
 adjp
 ```
 
 Rank tests can be obtained as a special case of permutation tests by replacing the observations with their ranks.
 
 ```{r}
-r = rank(y)
+r <- rank(y, ties.method = "average")
 ranks.perm <- rbind(
 ( r %*% t(c12) / n )^2,
 ( r %*% t(c13) / n )^2,
@@ -241,9 +241,9 @@ Wilcoxon-Mann-Whitney tests are obtained by
 ```{r}
 w_12 <- (mt.sample.teststat(y[labels!=2],labels[labels!=2], B=0, test="wilcoxon"))^2
 p_12 <- mean(w_12 >= w_12[1])
-w_13 = (mt.sample.teststat(y[labels!=1],labels[labels!=1]=="2", B=0, test="wilcoxon"))^2
+w_13 <- (mt.sample.teststat(y[labels!=1],labels[labels!=1]=="2", B=0, test="wilcoxon"))^2
 p_13 <- mean(w_13 >= w_13[1])
-w_23 = (mt.sample.teststat(y[labels!=0],labels[labels!=0]=="2", B=0, test="wilcoxon"))^2
+w_23 <- (mt.sample.teststat(y[labels!=0],labels[labels!=0]=="2", B=0, test="wilcoxon"))^2
 p_23 <- mean(w_23 >= w_23[1])
 p_D <- p_12
 ```
@@ -251,15 +251,156 @@ p_D <- p_12
 Adjusted $p$-values with rank tests for the four hypotheses and the four methods:
 
 ```{r}
-adjp["A",] = pmax(c(p_12,p_13,p_23,p_A),p_A)
-adjp["B",] = pmax(c(p_12,p_13,p_23,p_B),p_B)
-adjp["C",] = pmax(c(p_12,p_13,p_23,p_C),p_C)
-adjp["D",] = pmax(c(p_12,p_13,p_23,p_D),p_D)
+adjp["A",] <- pmax(c(p_12,p_13,p_23,p_A),p_A)
+adjp["B",] <- pmax(c(p_12,p_13,p_23,p_B),p_B)
+adjp["C",] <- pmax(c(p_12,p_13,p_23,p_C),p_C)
+adjp["D",] <- pmax(c(p_12,p_13,p_23,p_D),p_D)
 adjp
 ```
 
 
 
 ## ANCOVA example
+
+
+As with ANOVA, we are interested in comparing means for groups defined by a factor 
+while controlling for the effects of other covariates that are not of primary interest. The following table displays data from Winer (1971), discussed in Dobson (1983). 
+
+```{r, echo=FALSE, results='asis'}
+rm(list=ls())
+library(kableExtra)
+cbind(achievement[1:7,2:3],
+      achievement[8:14,2:3],
+      achievement[15:21,2:3]) %>%
+  kable() %>%
+  add_header_above(c("Group A" = 2, "Group B" = 2, "Group C" = 2))
+rm(list=ls())
+```
+
+
+The response $y$ is the achievement score, the levels A, B and C of the group factor represent three different training methods, and the covariate $x$ is the aptitude score measured before training commenced. We want to compare the training methods, taking into account differences in initial aptitude between the three groups of subjects.
+
+
+
+```{r}
+achievement$method <- factor(achievement$method)
+ggscatter(achievement, x="x", y="y", color = "method")
+```
+
+
+We assume that the response in group $i$ is normally distributed with mean $\mu_i(x)$ and variance $\sigma^2$, with
+$$\mu_i(x) = \gamma +  \tau_i + \beta (x - \bar{x})$$
+where $\gamma$ is the common mean, $\tau_i$ is the $i$th group effect such that $\sum_i \tau_i =0$, $\beta$ is the regression slope and $\bar{x}$ is the average covariate value, with $i=1,2,3$ for group A,B,C, respectively.
+
+Analysis of covariance compares the adjusted means $\hat{\mu}_i(\bar{x}_i)$, i.e. the estimated group means adjusted for the group average covariate values. 
+
+Estimates $\hat\mu_1(\bar{x}_1)$, $\hat\mu_2(\bar{x}_2)$ and $\hat\mu_3(\bar{x}_3)$:
+
+```{r, message=F, warning=F, error=F, comment=NA}
+library(effects)
+fit <- lm(y ~ x + method, data = achievement)
+effect("method", fit)
+```
+
+Graph of the fitted model:
+
+```{r, fig.width=7}
+plot(predictorEffects(fit))
+```
+
+Let $Y$ and $X$ denote the response vector and the design matrix, respectively, and let $\hat{\theta} = (X'X)^{-1}XY$ be the least square estimator. 
+
+
+Least square estimates $\hat{\theta}$ and $\hat{\sigma}^2$:
+
+```{r}
+X <- model.matrix(fit)
+df <- summary(fit)$df[2]
+theta <- coef(fit)
+theta
+s2 <- summary(fit)$sigma^2
+s2
+```
+
+We can use the multcomp package to calculate the test statistics and find their distribution.
+
+Matrix $K$ specifying pairwise contrasts of factor levels:
+
+```{r, message=F, warning=F, error=F, comment=NA}
+library(multcomp)
+tuk <- glht(fit,linfct=mcp(method="Tukey"))
+K <- tuk$linfct
+K
+```
+
+Estimated differences 
+$K\hat{\theta} = \left(\begin{array}{c}
+\hat{\mu}_2(\bar{x}_2) - \hat{\mu}_1(\bar{x}_1)\\
+\hat{\mu}_3(\bar{x}_3) - \hat{\mu}_1(\bar{x}_1)\\
+\hat{\mu}_3(\bar{x}_3) - \hat{\mu}_2(\bar{x}_2)\\
+\end{array}\right)$
+
+```{r}
+K %*% theta
+```
+
+and estimated covariance matrix $\hat{\Sigma} = \hat{\sigma}^2 K(X'X)^{-1}K'$
+
+```{r}
+S <- s2 * K %*% solve(crossprod(X)) %*% t(K)
+S
+```
+
+Unadjusted $p$-values $p_{12}$, $p_{13}$ and $p_{23}$ 
+
+```{r}
+p_raw <- pf( (K %*% theta)^2 / diag(S), df1 = 1, df2 = df, lower.tail = F)
+p_12 <- p_raw[1]
+p_12
+p_13 <- p_raw[2]
+p_13
+p_23 <- p_raw[3]
+p_23
+```
+
+Tukey's HSD adjusted $p$-values $\tilde{p}^{Tuk}_{12}$, $\tilde{p}^{Tuk}_{13}$ and $\tilde{p}^{Tuk}_{23}$ :
+
+```{r}
+p_tuk <- summary(tuk)$test$pvalues[1:3]
+p_tuk
+```
+
+Dunnett adjusted $p$-values $\tilde{p}^{Dun}_{12}$ and $\tilde{p}^{Dun}_{13}$ 
+
+```{r}
+dun <- glht(fit,linfct=mcp(method="Dunnett"))
+p_dun <- summary(dun)$test$pvalues[1:2]
+p_dun
+```
+
+ANCOVA F-test (method A), closed Tukey (method B), closed Dunnett (method C) and Gatekeeping (method D) $p$-values for $H_{123}$:
+
+```{r}
+fit_123 <- lm(y ~ x, achievement)
+p_A <- anova(fit_123,fit)[2,"Pr(>F)"]
+p_B <- min(p_tuk)
+p_C <- min(p_dun)
+p_D <- p_12
+```
+
+Adjusted $p$-values for the four hypotheses and the four methods:
+
+```{r}
+adjp <- matrix(NA,nrow=4,ncol=4,
+              dimnames = list(c("A", "B", "C", "D"),
+                              c("H12", "H13", "H23", "H123")))
+adjp["A",] <- pmax(c(p_12,p_13,p_23,p_A),p_A)
+adjp["B",] <- pmax(c(p_12,p_13,p_23,p_B),p_B)
+adjp["C",] <- pmax(c(p_12,p_13,p_23,p_C),p_C)
+adjp["D",] <- pmax(c(p_12,p_13,p_23,p_D),p_D)
+adjp
+```
+
+
 
 
