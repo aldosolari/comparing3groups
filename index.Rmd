@@ -18,6 +18,23 @@ knitr::opts_chunk$set(
 
 Supplementary R code for reproducing the examples in the paper ``Comparing three groups''. 
 
+## Set up
+
+Install and load the required R packages:
+
+```{r, results='hide', message=F, warning=F, error=F, comment=NA}
+require("dobson") || install.packages("dobson")
+require("tidyr") || install.packages("tidyr")
+require("DescTools") || install.packages("DescTools")
+require("ggplot2") || install.packages("ggplot2")
+require("ggpubr") || install.packages("ggpubr")
+require("multcomp") || install.packages("multcomp")
+require("multtest") || install.packages("multtest")
+require("kableExtra") || install.packages("kableExtra")
+require("effects") || install.packages("effects")
+require("repmis") || install.packages("repmis")
+```
+
 ## One-way ANOVA example
 
 This example is taken from Dobson's (1983) book, Section 7. 
@@ -26,8 +43,6 @@ Genetically similar seeds are randomly assigned to be raised
 either under standard conditions (**control**) or in two different nutritionally enriched environments (**treatment A** and **treatment B**). After a predetermined period all plants are harvested, dried and weighed. The results, expressed as dried weight in grams, for samples of $10$ plants from each group are given in following Table. 
 
 ```{r, echo=FALSE, results='asis'}
-library(dobson)
-library(tidyr)
 plant.dried %>%
   pivot_wider(names_from = group, 
               values_from = weight,
@@ -46,7 +61,6 @@ We are interested in testing the global null hypothesis that all three group mea
 To get estimates $\hat{\mu}_1$, $\hat{\mu}_2$, $\hat{\mu}_3$ and $\hat{\sigma}^2$:
 
 ```{r}
-library(dobson)
 fit <- lm(weight ~ group -1, plant.dried)
 fit$coefficients
 summary(fit)$sigma^2
@@ -76,7 +90,6 @@ p_tuk
 Dunnett adjusted $p$-values for $H_{12}$ and $H_{13}$
 
 ```{r}
-library(DescTools)
 p_dun <- DunnettTest(weight ~ factor(group), plant.dried, control="Control")$Control[,'pval']
 p_dun
 ```
@@ -115,8 +128,6 @@ any hypothesis, while methods A and B reject $H_{123}$ and $H_{13}$.
 For method A, add adjusted $p$-values to box-plots:
 
 ```{r, fig.width=5}
-library(ggplot2)
-library(ggpubr)
 bp <- ggboxplot(plant.dried, x = "group", y = "weight")
 stats <- compare_means(weight ~ group, data = plant.dried, method = "t.test")
 stats$p.adj <- round(adjp["A",-4],3)
@@ -149,7 +160,6 @@ The construction of the permutation null distribution for each test statistic pr
 Permutation tests of $H_{123}$ uses a global permutation distribution, constructed by permuting the observations of all three groups. 
 
 ```{r, message=F, warning=F, error=F, comment=NA, fig.show='hold'}
-library(multtest)
 labels <- factor(plant.dried$group, labels=0:2)
 labels <- as.numeric(levels(labels))[labels]
 B = 10^5
@@ -203,6 +213,7 @@ t_23 <- (mt.sample.teststat(y[labels!=0],labels[labels!=0]=="2", B=0, test="t.eq
 p_23 <- mean(t_23 >= t_23[1])
 p_23
 ```
+
 Adjusted $p$-values with permutation tests for the four hypotheses and the four methods:
 
 ```{r}
@@ -268,7 +279,6 @@ while controlling for the effects of other covariates that are not of primary in
 
 ```{r, echo=FALSE, results='asis'}
 rm(list=ls())
-library(kableExtra)
 cbind(achievement[1:7,2:3],
       achievement[8:14,2:3],
       achievement[15:21,2:3]) %>%
@@ -297,7 +307,6 @@ Analysis of covariance compares the adjusted means $\hat{\mu}_i(\bar{x}_i)$, i.e
 Estimates $\hat\mu_1(\bar{x}_1)$, $\hat\mu_2(\bar{x}_2)$ and $\hat\mu_3(\bar{x}_3)$:
 
 ```{r, message=F, warning=F, error=F, comment=NA}
-library(effects)
 fit <- lm(y ~ x + method, data = achievement)
 effect("method", fit)
 ```
@@ -327,7 +336,6 @@ We can use the multcomp package to calculate the test statistics and find their 
 Matrix $K$ specifying pairwise contrasts of factor levels:
 
 ```{r, message=F, warning=F, error=F, comment=NA}
-library(multcomp)
 tuk <- glht(fit,linfct=mcp(method="Tukey"))
 K <- tuk$linfct
 K
@@ -411,7 +419,7 @@ In this analysis, the outcome variable is the Machiavellianism score, as measure
 ```{r, fig.width=5}
 rm(list=ls())
 set.seed(123)
-load("Harry4.Rdata")
+source_data("https://github.com/aldosolari/comparing3groups/blob/main/Harry4.RData?raw=true")
 table(Harry4$group)
 ggboxplot(Harry4, x = "group", y = "score", col="group", add = "jitter")
 ```
