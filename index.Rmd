@@ -142,7 +142,7 @@ adjp
 resulting in the rejection of $H_{123}$, $H_{13}$ and $H_{23}$ at $\alpha=5\%$ for methods A and B.Here method A is Fisher's LSD.
 
 We could also use methods A, B, C and D in a permutation framework.
-A standard choice is to consider non-standardized test statistics $T_{ij} = (\hat{\mu}_i - \hat{\mu}_j)^2$ for testing $H_{ij}$, and $T_{123} = T_{12}+T_{23}+ T_{13}$,  $\tilde{T} = \max(T_{12}, T_{13},T_{23})$ and $\tilde{T}_{1}=\max(T_{12}, T_{13})$ for testing $H_{123}$ in methods A, B, C and D, respectively. 
+A standard choice is to consider non-standardized test statistics $T_{ij} = (\hat{\mu}_i - \hat{\mu}_j)^2$ for testing $H_{ij}$, and $T_{123} = T_{12}+T_{23}+ T_{13}$,  $\tilde{T} = \max(T_{12}, T_{13},T_{23})$,  $\tilde{T}_{1}=\max(T_{12}, T_{13})$ and $T_{12}$ for testing $H_{123}$ in methods A, B, C and D, respectively. 
 
 The construction of the permutation null distribution for each test statistic proceeds as follows. The observations of the groups are pooled, and the test statistic is recalculated for every permutation of the group labels. 
 
@@ -402,5 +402,177 @@ adjp
 ```
 
 
+## Four-group example
 
+Jakob et al. (2019) collected a dataset from 847 subjects to study the relation between Harry Potter Houses and personality traits. The raw data can be found at https://osf.io/rtf74/.
 
+In this analysis, the outcome variable is the Machiavellianism score, as measured by the Dark Triad Questionnaire (Jones and Paulhus, 2014), and the affiliation to four Houses of Hogwarts - Gryffindor, Hufflepuff, Ravenclaw, or Slytherin - is determined by the Sorting Hat Quiz, available on https://www.pottermore.com.
+
+```{r, fig.width=5}
+rm(list=ls())
+set.seed(123)
+library(ggplot2)
+library(ggpubr)
+load("Harry4.Rdata")
+table(Harry4$group)
+ggboxplot(Harry4, x = "group", y = "score", col="group", add = "jitter")
+```
+
+To get estimates $\hat{\mu}_1$, $\hat{\mu}_2$, $\hat{\mu}_3$ and $\hat{\mu}_4$:
+
+```{r}
+levels(Harry4$group) <- 1:4
+fit <- lm(score ~ group -1, Harry4)
+fit$coefficients
+```
+
+To compute unadjusted $p$-values for $H_{12}$, $H_{13}$, $H_{14}$, $H_{23}$, $H_{24}$ and $H_{34}$:
+
+```{r}
+library(multcomp)
+tuk <- glht(fit,linfct=mcp(group="Tukey"))
+p_pair = summary(tuk, test=adjusted("none"))$test$pvalues
+round(p_pair,4)
+```
+
+Define the 14 hypotheses and the inclusion relationship between each elementary hypothesis and its ancestors:
+
+```{r}
+hyp = list(`1234` = 1:4, 
+           `123` = 1:3,
+           `124` = c(1:2,4),
+           `134` = c(1,3:4),
+           `234` = 2:4,
+           `12_34` = list(1:2,3:4),
+           `13_24` = list(c(1,3),c(2,4)),
+           `14_23` = list(c(1,4),2:3),
+           `12` = 1:2,
+           `13` = c(1,3),
+           `14` = c(1,4),
+           `23` = 2:3,
+           `24` = c(2,4),
+           `34` = 3:4)
+subhyp <- sapply(hyp[c("12","13","14","23","24","34")], 
+            function(y)
+            sapply(hyp, function(x) ifelse(any(lengths(x)<2), 
+                               all(y %in% x), 
+                               list(y) %in% x)))
+```
+
+To compute adjusted $p$-values for $H_{12}$, $H_{13}$, $H_{14}$, $H_{23}$, $H_{24}$ and $H_{34}$ for classic closed testing with partial $F$-tests:
+
+```{r}
+rawp_A <- vector("numeric", length = length(hyp))
+names(rawp_A) <- names(hyp)
+rawp_A["1234"] <- anova(lm(score ~ 1, Harry4),fit)[2,"Pr(>F)"]
+rawp_A[c("123","124","134","234")] <- sapply(4:1, function(i)
+                      anova(lm(score ~ I(group==i), Harry4),fit)[2,"Pr(>F)"] )
+anova_12_34 <- glht(fit, linfct=c("group1 - group2 = 0", 
+                                  "group3 - group4 = 0"))
+rawp_A["12_34"] <-summary(anova_12_34, test=Ftest())$test$pvalue
+anova_13_24 <- glht(fit, linfct=c("group1 - group3 = 0", 
+                                  "group2 - group4 = 0"))
+rawp_A["13_24"] <-summary(anova_13_24, test=Ftest())$test$pvalue
+anova_14_23 <- glht(fit, linfct=c("group1 - group4 = 0", 
+                                  "group2 - group3 = 0"))
+rawp_A["14_23"] <-summary(anova_14_23, test=Ftest())$test$pvalue
+rawp_A[c("12","13","14","23","24","34")] <- p_pair
+adjp_A <- apply(subhyp, 2, function(x) max(rawp_A[x]) )
+```
+
+Closed Tukey adjusted $p$-values:
+
+```{r}
+rawp_B <- vector("numeric", length = length(hyp))
+names(rawp_B) <- names(hyp)
+rawp_B["1234"] <- min(summary(tuk)$test$pvalues)
+tuk_123 <- glht(fit, linfct=c("group1 - group2 = 0", 
+                              "group1 - group3 = 0",
+                              "group2 - group3 = 0"))
+rawp_B["123"] <- min(summary(tuk_123)$test$pvalues)
+tuk_124 <- glht(fit, linfct=c("group1 - group2 = 0", 
+                              "group1 - group4 = 0",
+                              "group2 - group4 = 0"))
+rawp_B["124"] <- min(summary(tuk_124)$test$pvalues)
+tuk_134 <- glht(fit, linfct=c("group1 - group3 = 0", 
+                              "group1 - group4 = 0",
+                              "group3 - group4 = 0"))
+rawp_B["134"] <- min(summary(tuk_134)$test$pvalues)
+tuk_234 <- glht(fit, linfct=c("group2 - group3 = 0", 
+                              "group2 - group4 = 0",
+                              "group3 - group4 = 0"))
+rawp_B["234"] <- min(summary(tuk_234)$test$pvalues)
+tuk_12_34 <- glht(fit, linfct=c("group1 - group2 = 0", 
+                                "group3 - group4 = 0"))
+rawp_B["12_34"] <- min(summary(tuk_12_34)$test$pvalues)
+tuk_13_24 <- glht(fit, linfct=c("group1 - group3 = 0", 
+                                "group2 - group4 = 0"))
+rawp_B["13_24"] <- min(summary(tuk_13_24)$test$pvalues)
+tuk_14_23 <- glht(fit, linfct=c("group1 - group4 = 0", 
+                                "group2 - group3 = 0"))
+rawp_B["14_23"] <- min(summary(tuk_14_23)$test$pvalues)
+rawp_B[c("12","13","14","23","24","34")] <- p_pair
+adjp_B <- apply(subhyp, 2, function(x) max( rawp_B[x]) )
+```
+
+Closed Dunnett adjusted $p$-values:
+
+```{r}
+rawp_C <- vector("numeric", length = length(hyp))
+names(rawp_C) <- names(hyp)
+dun <- glht(fit, linfct=c("group4 - group1 = 0", 
+                          "group4 - group2 = 0",
+                          "group4 - group3 = 0"))
+rawp_C["1234"] <- min(summary(dun)$test$pvalues)
+rawp_C["123"] <- rawp_A["123"]
+dun_124 <- glht(fit, linfct=c("group4 - group1 = 0", 
+                              "group4 - group2 = 0"))
+rawp_C["124"] <- min(summary(dun_124)$test$pvalues)
+dun_134 <- glht(fit, linfct=c("group4 - group1 = 0", 
+                              "group4 - group3 = 0"))
+rawp_C["134"] <- min(summary(dun_134)$test$pvalues)
+dun_234 <- glht(fit, linfct=c("group4 - group3 = 0", 
+                              "group4 - group2 = 0"))
+rawp_C["234"] <- min(summary(dun_234)$test$pvalues)
+rawp_C[c("14_23","13_24","12_34")] <- rawp_A[c("14","24","34")]
+rawp_C[c("12","13","14","23","24","34")] <- p_pair
+adjp_C <- apply(subhyp, 2, function(x) max( rawp_C[x]) )
+```
+
+Gatekeeping adjusted $p$-values:
+
+```{r}
+rawp_D <- vector("numeric", length = length(hyp))
+names(rawp_D) <- names(hyp)
+rawp_D[c("1234",
+         "123","124","134","234",
+         "12_34","13_24","14_23")] <- rawp_A[c("24",
+                                               "12","24","14","24",
+                                               "34","24","14")]
+rawp_D[c("12","13","14","23","24","34")] <- p_pair
+adjp_D <- apply(subhyp, 2, function(x) max(rawp_D[x]) )
+```
+
+Adjusted $p$-values for the six hypotheses and four methods
+
+```{r}
+adjp <- matrix(rbind(adjp_A, adjp_B, adjp_C, adjp_D),nrow=4,ncol=6,
+               dimnames = list(c("A", "B", "C","D"),names(p_pair)))
+round(adjp,4)
+```
+
+Compare to Tukey’s HSD adjusted $p$-values:
+
+```{r}
+adjp_tuk = c(summary(tuk)$test$pvalues)
+names(adjp_tuk) <- rownames(summary(tuk)$linfct)
+round(adjp_tuk,4)
+```
+
+Compare to Dunnett’s adjusted $p$-values:
+
+```{r}
+adjp_dun = c(summary(dun)$test$pvalues)
+names(adjp_dun) <- rownames(summary(dun)$linfct)
+round(adjp_dun,4)
+```
