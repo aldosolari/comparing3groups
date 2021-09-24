@@ -411,8 +411,6 @@ In this analysis, the outcome variable is the Machiavellianism score, as measure
 ```{r, fig.width=5}
 rm(list=ls())
 set.seed(123)
-library(ggplot2)
-library(ggpubr)
 load("Harry4.Rdata")
 table(Harry4$group)
 ggboxplot(Harry4, x = "group", y = "score", col="group", add = "jitter")
@@ -429,7 +427,6 @@ fit$coefficients
 To compute unadjusted $p$-values for $H_{12}$, $H_{13}$, $H_{14}$, $H_{23}$, $H_{24}$ and $H_{34}$:
 
 ```{r}
-library(multcomp)
 tuk <- glht(fit,linfct=mcp(group="Tukey"))
 p_pair = summary(tuk, test=adjusted("none"))$test$pvalues
 round(p_pair,4)
